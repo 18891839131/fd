@@ -614,18 +614,22 @@ pragma solidity ^0.8.0;
 
 
 
+
 contract FdPled is Context{
 
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
+    using Address for address;
 
     IUniswapV2Router02 public immutable uniswapV2Router;
 
     address public immutable uniswapV2Pair;
 
     IERC20 token;      //用于分配收益的ERC20资产 0xc2449cd0CDf25Bcbc28f976Ec1C1a51932dE984A 0x6bddd530e9d5bbdb675efcdc5946d52e4814d4eb
+    IERC20 daibi; 
     address private owner;          //合约部署（拥有者）账号地址
     uint256 private minNumber = 10000 * 10**18;  //最小质押数量
+    uint256 private uscNumber = 1 * 10**18;  //最小质押数量
     uint256 private totalSupply; //总质押
     /**
      * 结构体，用于标记用户地址的质押状态
@@ -650,21 +654,21 @@ contract FdPled is Context{
         _;
     }
 
- 
-    constructor(IERC20 _erc20){
-        token = _erc20;
+    constructor(IERC20 _token,IERC20 _daibi){
+        token = _token;
+        daibi = _daibi;
         owner = _msgSender();
         uniswapV2Router = IUniswapV2Router02(0x10ED43C718714eb63d5aA57B78B54704E256024E);
-        uniswapV2Pair  = pairFor(IUniswapV2Router02(0x10ED43C718714eb63d5aA57B78B54704E256024E).factory(),0x55d398326f99059fF775485246999027B3197955,0x96630e53380b238B7633056ea10542C2854302e0);
+        uniswapV2Pair  = pairFor(IUniswapV2Router02(0x10ED43C718714eb63d5aA57B78B54704E256024E).factory(),address(token),address(daibi));
     }
 
     /**
      * 质押函数
      */
-    function pledToken(uint256 _userId, uint256 _orderId, address _parent, uint256 _paidNum) public returns(bool){
-        require(address(_msgSender()) == address(tx.origin), "no contract");
+    function pledToken(uint256 _userId, uint256 _orderId, address _parent, uint256 _paidNum) public returns(uint256){
+        require(Address.isContract(_msgSender()) == false, "no contract");
         require(_paidNum >= minNumber, "minNumber error");
-        require(token.allowance(_msgSender(),address(this)) >= _paidNum, "token no allowance");
+        require(daibi.allowance(_msgSender(),address(this)) >= _paidNum, "token no allowance");
         require(orders[_orderId].isExist == false, "order error");
         keys.push(keyFlag(_msgSender(),true,_orderId,_userId,_paidNum));
         uint256 key =  keys.length - 1;
@@ -672,15 +676,15 @@ contract FdPled is Context{
         (,uint256 destroyNum) = SafeMath.tryMul(_paidNum,90);
         (,uint256 dnamicNum) = SafeMath.tryMul(_paidNum,10);
         address destroyAddr = 0x000000000000000000000000000000000000dEaD;
-        token.safeTransferFrom(_msgSender(),destroyAddr,destroyNum.div(100));
-        token.safeTransferFrom(_msgSender(),_parent,dnamicNum.div(100));
+        daibi.safeTransferFrom(_msgSender(),destroyAddr,destroyNum.div(100));
+        daibi.safeTransferFrom(_msgSender(),_parent,dnamicNum.div(100));
         (,totalSupply) = SafeMath.tryAdd(totalSupply,_paidNum);
-        return true;
+        return _paidNum;
     }
 
-    function swapToken(uint256 _userId, uint256 _orderId, address _parent, uint256 _paidNum) public returns(bool){
-        require(address(_msgSender()) == address(tx.origin), "no contract");
-        require(_paidNum >= minNumber, "minNumber error");
+    function swapToken(uint256 _userId, uint256 _orderId, address _parent, uint256 _paidNum) public returns(uint256){
+        require(Address.isContract(_msgSender()) == false, "no contract");
+        require(_paidNum >= uscNumber, "uscNumber error");
         require(token.allowance(_msgSender(),address(this)) >= _paidNum, "token no allowance");
         require(orders[_orderId].isExist == false, "order error");
         token.safeTransferFrom(_msgSender(),address(this),_paidNum);
@@ -692,10 +696,10 @@ contract FdPled is Context{
         (,uint256 destroyNum) = SafeMath.tryMul(_swapNum,90);
         (,uint256 dnamicNum) = SafeMath.tryMul(_swapNum,10);
         address destroyAddr = 0x000000000000000000000000000000000000dEaD;
-        token.safeTransferFrom(_msgSender(),destroyAddr,destroyNum.div(100));
-        token.safeTransferFrom(_msgSender(),_parent,dnamicNum.div(100));
+        daibi.safeTransfer(destroyAddr,destroyNum.div(100));
+        daibi.safeTransfer(_parent,dnamicNum.div(100));
         (,totalSupply) = SafeMath.tryAdd(totalSupply,_swapNum);
-        return true;
+        return _swapNum;
     }
 
     //首先构建一个交易路径：[Safemonn ,uniswapV2Router.WETH()]，然后授权给uniswapV2Router一定额度，
@@ -705,8 +709,10 @@ contract FdPled is Context{
     function swapTokensForTokens(uint256 tokenAmount) private{
         // generate the uniswap pair path of token -> weth
         address[] memory path = new address[](2);
-        path[0] = 0x55d398326f99059fF775485246999027B3197955;
-        path[1] = 0x96630e53380b238B7633056ea10542C2854302e0;
+        //path[0] = 0x55d398326f99059fF775485246999027B3197955;
+        //path[1] = 0x96630e53380b238B7633056ea10542C2854302e0;
+        path[0] = address(token);
+        path[1] = address(daibi);
         token.approve(address(uniswapV2Router),tokenAmount);
         // make the swap
         uniswapV2Router.swapExactTokensForTokensSupportingFeeOnTransferTokens(
@@ -746,6 +752,18 @@ contract FdPled is Context{
        return keys.length;
     }
 
+    function getDaibi() public view returns(address){
+       return address(daibi);
+    }
+
+     /**
+     * 设置投资币种
+     */
+    function setDaibi(IERC20 _daibi) public onlyOwner () {
+        require(address(_daibi) != address(0),"_erc20 is not zero");
+        daibi = _daibi;
+    }
+
     function getToken() public view returns(address){
        return address(token);
     }
@@ -753,9 +771,21 @@ contract FdPled is Context{
      /**
      * 设置投资币种
      */
-    function setToken(IERC20 _erc20) public onlyOwner () {
-        require(address(_erc20) != address(0),"_erc20 is not zero");
-        token = _erc20;
+    function setToken(IERC20 _token) public onlyOwner () {
+        require(address(_token) != address(0),"_erc20 is not zero");
+        token = _token;
+    }
+
+    function getUscNumber() public view returns(uint256){
+       return uscNumber;
+    }
+
+     /**
+     * 设置投资数量
+     */
+    function setUscNumber(uint256 _number) public onlyOwner () {
+        require(_number > 0,"_number is not zero");
+        uscNumber = _number;
     }
 
 
@@ -771,11 +801,20 @@ contract FdPled is Context{
         minNumber = _number;
     }
 
-     /**
+
+    /**
      * 获取总质押数量
      */
     function getTotalSupply() public view returns(uint256){
        return totalSupply;
+    }
+
+    /**
+     * 获取总质押数量
+     */
+    function setTotalSupply(uint256 _totalSupply) public onlyOwner(){
+       require(_totalSupply >= 0,"_totalSupply is not zero");
+       totalSupply = _totalSupply;
     }
 
     function pairFor(address factory, address tokenA, address tokenB) internal pure returns (address pair) {
