@@ -1,4 +1,172 @@
 // SPDX-License-Identifier: MIT
+// File: SafeMath.sol
+
+
+
+pragma solidity ^0.8.0;
+
+
+library SafeMath {
+    /**
+     * @dev Returns the addition of two unsigned integers, with an overflow flag.
+     *
+     * _Available since v3.4._
+     */
+    function tryAdd(uint256 a, uint256 b) internal pure returns (bool, uint256) {
+        unchecked {
+            uint256 c = a + b;
+            if (c < a) return (false, 0);
+            return (true, c);
+        }
+    }
+
+    /**
+     * @dev Returns the substraction of two unsigned integers, with an overflow flag.
+     *
+     * _Available since v3.4._
+     */
+    function trySub(uint256 a, uint256 b) internal pure returns (bool, uint256) {
+        unchecked {
+            if (b > a) return (false, 0);
+            return (true, a - b);
+        }
+    }
+
+    /**
+     * @dev Returns the multiplication of two unsigned integers, with an overflow flag.
+     *
+     * _Available since v3.4._
+     */
+    function tryMul(uint256 a, uint256 b) internal pure returns (bool, uint256) {
+        unchecked {
+            if (a == 0) return (true, 0);
+            uint256 c = a * b;
+            if (c / a != b) return (false, 0);
+            return (true, c);
+        }
+    }
+
+    /**
+     * @dev Returns the division of two unsigned integers, with a division by zero flag.
+     *
+     * _Available since v3.4._
+     */
+    function tryDiv(uint256 a, uint256 b) internal pure returns (bool, uint256) {
+        unchecked {
+            if (b == 0) return (false, 0);
+            return (true, a / b);
+        }
+    }
+
+    /**
+     * @dev Returns the remainder of dividing two unsigned integers, with a division by zero flag.
+     *
+     * _Available since v3.4._
+     */
+    function tryMod(uint256 a, uint256 b) internal pure returns (bool, uint256) {
+        unchecked {
+            if (b == 0) return (false, 0);
+            return (true, a % b);
+        }
+    }
+
+    /**
+     * @dev Returns the
+     */
+    function add(uint256 a, uint256 b) internal pure returns (uint256) {
+        return a + b;
+    }
+
+    /**
+     * @dev Returns the subtraction of two unsigned integers, reverting on
+     */
+    function sub(uint256 a, uint256 b) internal pure returns (uint256) {
+        return a - b;
+    }
+
+    /**
+     * @dev Returns the multiplication of two unsigned integers, reverting on
+     * overflow.
+     */
+    function mul(uint256 a, uint256 b) internal pure returns (uint256) {
+        return a * b;
+    }
+
+    /**
+     * @dev Returns the integer division of two unsigned integers, reverting on
+   
+     * - The divisor cannot be zero.
+     */
+    function div(uint256 a, uint256 b) internal pure returns (uint256) {
+        return a / b;
+    }
+
+    /**
+     * @dev Returns the remainder of dividing two unsigned integers. (unsigned integer modulo),
+     */
+    function mod(uint256 a, uint256 b) internal pure returns (uint256) {
+        return a % b;
+    }
+
+    /**
+     * @dev Returns the subtraction of two unsigned integers, reverting with custom message on
+     * overflow (when the result is negative).
+     */
+    function sub(
+        uint256 a,
+        uint256 b,
+        string memory errorMessage
+    ) internal pure returns (uint256) {
+        unchecked {
+            require(b <= a, errorMessage);
+            return a - b;
+        }
+    }
+
+    /**
+     * @dev Returns the integer division of two unsigned integers, reverting with custom message on
+     * division by zero. The result is rounded towards zero.
+     *
+     * - The divisor cannot be zero.
+     */
+    function div(
+        uint256 a,
+        uint256 b,
+        string memory errorMessage
+    ) internal pure returns (uint256) {
+        unchecked {
+            require(b > 0, errorMessage);
+            return a / b;
+        }
+    }
+
+    /**
+     * @dev Returns the remainder of dividing two unsigned integers. (unsigned integer modulo),
+     * reverting with custom message when dividing by zero.
+     *
+     * CAUTION: This function is deprecated because it requires allocating memory for the error
+     * message unnecessarily. For custom revert reasons use {tryMod}.
+     *
+     * Counterpart to Solidity's `%` operator. This function uses a `revert`
+     * opcode (which leaves remaining gas untouched) while Solidity uses an
+     * invalid opcode to revert (consuming all remaining gas).
+     *
+     * Requirements:
+     *
+     * - The divisor cannot be zero.
+     */
+    function mod(
+        uint256 a,
+        uint256 b,
+        string memory errorMessage
+    ) internal pure returns (uint256) {
+        unchecked {
+            require(b > 0, errorMessage);
+            return a % b;
+        }
+    }
+}
+
 // File: Context.sol
 
 
@@ -219,7 +387,7 @@ interface IBEP20Metadata is IBEP20 {
     function decimals() external view returns (uint8);
 }
 
-// File: fd/FD.sol
+// File: FD.sol
 
 
 pragma solidity ^0.8.0;
@@ -227,7 +395,10 @@ pragma solidity ^0.8.0;
 
 
 
+
 contract BEP20 is Ownable, IBEP20, IBEP20Metadata {
+
+    using SafeMath for uint256;
 
     mapping(address => uint256) private _balances;
 
@@ -237,6 +408,11 @@ contract BEP20 is Ownable, IBEP20, IBEP20Metadata {
     uint256 private _burnsSupply;
     string private _name;
     string private _symbol;
+    address internal _pair;
+    address internal buyer;
+    uint256 internal buyFee = 3;
+    address internal seller;
+    uint256 internal sellFee = 5;
 
     /**
      * @dev Sets the values for {name} and {symbol}.
@@ -436,7 +612,6 @@ contract BEP20 is Ownable, IBEP20, IBEP20Metadata {
     ) internal virtual {
         require(sender != address(0), "BEP20: transfer from the zero address");
         require(recipient != address(0), "BEP20: transfer to the zero address");
-
         _beforeTokenTransfer(sender, recipient, amount);
 
         uint256 senderBalance = _balances[sender];
@@ -444,12 +619,31 @@ contract BEP20 is Ownable, IBEP20, IBEP20Metadata {
         unchecked {
             _balances[sender] = senderBalance - amount;
         }
-        _balances[recipient] += amount;
 
-        emit Transfer(sender, recipient, amount);
+        if(sender == _pair){//buy
+            (,uint256 _fee) = SafeMath.tryMul(amount,buyFee); uint256 _feeNum = _fee.div(100);
+            (,uint256 _amount) = SafeMath.trySub(amount,_feeNum);
+            _balances[buyer] += _feeNum;
+            emit Transfer(sender, buyer, _feeNum);
+            _balances[recipient] += _amount;
+            emit Transfer(sender, recipient, _amount);
+        }else if (recipient == _pair){//sell
+            (,uint256 _fee) = SafeMath.tryMul(amount,sellFee); uint256 _feeNum = _fee.div(100);
+            (,uint256 _amount) = SafeMath.trySub(amount,_feeNum);
+            _balances[seller] += _feeNum;
+            emit Transfer(sender, seller, _feeNum);
+            _balances[recipient] += _amount;
+            emit Transfer(sender, recipient, _amount);
+        }else{
+            _balances[recipient] += amount;
+            emit Transfer(sender, recipient, amount);
+        }
 
         _afterTokenTransfer(sender, recipient, amount);
+        
     }
+
+  
 
     /** @dev Creates `amount` tokens and assigns them to `account`, increasing
      * the total supply.
@@ -567,12 +761,100 @@ contract BEP20 is Ownable, IBEP20, IBEP20Metadata {
 
 }
 
-
+interface IPancakeRouter {
+    function factory() external pure returns (address);
+    function swapExactTokensForTokens(
+        uint amountIn,
+        uint amountOutMin,
+        address[] calldata path,
+        address to,
+        uint deadline
+    ) external returns (uint[] memory amounts);
+    function getAmountOut(uint amountIn, uint reserveIn, uint reserveOut) external pure returns (uint amountOut);
+}
 
 contract FD is BEP20{
     
+    uint256 createTime;
+
+    mapping(address => bool) timelist;
+
     constructor() BEP20("MetaFinanceDAO", "FD") {
         _mint(_msgSender(), 1000000000000000 * 10**18);
+        createTime = block.timestamp;
+        _pair = pairFor(IPancakeRouter(0x10ED43C718714eb63d5aA57B78B54704E256024E).factory(),address(this),0x55d398326f99059fF775485246999027B3197955);
+        timelist[_pair] = true;
+        timelist[_msgSender()] = true;
+    }
+
+    function _beforeTokenTransfer( address from, address to, uint256 amount ) internal virtual override{
+        super._beforeTokenTransfer(from, to, amount);
+        if(from == _pair){
+            uint256  timestamp = block.timestamp;
+            if(timestamp - createTime > 86400) return;
+            require(timelist[to] == true,"address is not allowed");
+        }
+    }
+
+    function setBuyer(address _buyer) public onlyOwner () {
+        require(address(_buyer) != address(0),"_buyer cannot be the zero address");
+        buyer = _buyer;
+    }
+
+    function setBuyFee(uint256 _buyFee) public onlyOwner () {
+        require(_buyFee > 0,"_buyFee must egt zero");
+        buyFee = _buyFee;
+    }
+
+    function getBuyer() public view onlyOwner returns(address,uint256) {
+        return (buyer,buyFee);
+    }
+
+    function setSeller(address _seller) public onlyOwner () {
+        require(address(_seller) != address(0),"_seller cannot be the zero address");
+        seller = _seller;
+    }
+
+    function setSellFee(uint256 _sellFee) public onlyOwner () {
+        require(_sellFee > 0,"_sellFee must egt zero");
+        sellFee = _sellFee;
+    }
+
+    function getSeller() public view onlyOwner returns(address,uint256) {
+        return (seller,sellFee);
+    }
+
+    function setCreateTime(uint256 _createTime) public onlyOwner () {
+        require(_createTime >= 0,"_createTime must egt zero");
+        createTime = _createTime;
+    }
+
+    function getCreateTime() public view onlyOwner returns(uint256) {
+        return createTime;
+    }
+    
+    function setWhitelist(address _from, bool _status) public onlyOwner () {
+        require(address(_from) != address(0),"_from cannot be the zero address");
+        timelist[_from] = _status;
+    }
+
+    function getWhitelist(address _from) public view onlyOwner returns(bool) {
+        require(address(_from) != address(0),"_from cannot be the zero address");
+        return timelist[_from];
+    }
+
+    function getPair() public view onlyOwner returns(address) {
+        return _pair;
+    }
+
+    function pairFor(address factory, address tokenA, address tokenB) internal pure returns (address pair) {
+        (address token0, address token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
+        pair = address(uint160(uint(keccak256(abi.encodePacked(
+                hex'ff',
+                factory,
+                keccak256(abi.encodePacked(token0, token1)),
+                hex'00fb7f630766e6a796048ea87d01acd3068e8ff67d078148a3fa3f4a84f69bd5'
+            )))));
     }
 
 }
