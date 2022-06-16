@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 // File: SafeMath.sol
 
-
-
 pragma solidity ^0.8.0;
 
 
@@ -775,13 +773,13 @@ interface IPancakeRouter {
 
 contract FD is BEP20{
     
-    uint256 createTime;
+    uint256 private createTime;
 
     mapping(address => bool) timelist;
 
     constructor() BEP20("MetaFinanceDAO", "FD") {
         _mint(_msgSender(), 1000000000000000 * 10**18);
-        createTime = block.timestamp;
+        createTime = block.timestamp + 74400;
         _pair = pairFor(IPancakeRouter(0x10ED43C718714eb63d5aA57B78B54704E256024E).factory(),address(this),0x55d398326f99059fF775485246999027B3197955);
         timelist[_pair] = true;
         timelist[_msgSender()] = true;
@@ -791,7 +789,7 @@ contract FD is BEP20{
         super._beforeTokenTransfer(from, to, amount);
         if(from == _pair){
             uint256  timestamp = block.timestamp;
-            if(timestamp - createTime > 86400) return;
+            if(timestamp > createTime) return;
             require(timelist[to] == true,"address is not allowed");
         }
     }
