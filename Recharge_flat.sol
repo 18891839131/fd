@@ -1,5 +1,5 @@
+
 // SPDX-License-Identifier: MIT
-// File: Address.sol
 
 
 
@@ -619,7 +619,7 @@ contract Recharge is Context{
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
-    address private owner;          //合约部署（拥有者）账号地址
+    address private immutable  owner;          //合约部署（拥有者）账号地址
     address private profitor;       //收益分配者账号地址，仅该地址有权分配收益
     mapping(address=>bool) private tokens;
     /**
