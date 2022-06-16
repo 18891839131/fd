@@ -1,4 +1,5 @@
 
+// SPDX-License-Identifier: MIT
 // File: Address.sol
 
 
@@ -619,8 +620,7 @@ contract Withdraw is Context{
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
-
-    address private owner;          //合约部署（拥有者）账号地址
+    address private immutable  owner;          //合约部署（拥有者）账号地址
     address private profitor;       //收益分配者账号地址，仅该地址有权分配收益
     uint256 private fees = 1 * 10**15;
     mapping(address=>bool) private tokens;
@@ -680,7 +680,7 @@ contract Withdraw is Context{
     /**
      * 质押取回
      */
-    function withdrawStatus(address _username, uint256 _orderId, IERC20 _orderPaid) public onlyOwner returns(bool){
+    function withdrawStatus(address _username, uint256 _orderId, IERC20 _orderPaid) public onlyProfitor returns(bool){
         require(orders[_orderId].isExist == true, "orderId error");
         require(_username != address(0), "_username not os zero address");
         if(orders[_orderId].status == true){return true;}
@@ -707,9 +707,7 @@ contract Withdraw is Context{
     }
 
     function getOrderCount() public view returns(uint256){
-
        return keys.length;
-
     }
 
     /**
@@ -721,10 +719,10 @@ contract Withdraw is Context{
 
     }
     
-     /**
+    /**
      * 设置投资币种
      */
-    function setFees(uint256 _fees) public onlyOwner () {
+    function setFees(uint256 _fees) public onlyProfitor () {
         require(_fees > 0,"_min is not zero");
         fees = _fees;
     }
@@ -751,7 +749,7 @@ contract Withdraw is Context{
     /**
      * 设置允許充值代幣
      */
-    function setTokens(IERC20 _token,bool _isPaid) public onlyOwner () {
+    function setTokens(IERC20 _token,bool _isPaid) public onlyProfitor () {
         require(address(_token) != address(0),"_token is not zero address");
         tokens[address(_token)] = _isPaid;
     }
