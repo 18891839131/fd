@@ -620,10 +620,10 @@ contract FdLps is Context{
     using SafeERC20 for IERC20;
 
     IERC20 token;      //用于分配收益的ERC20资产 0xc2449cd0CDf25Bcbc28f976Ec1C1a51932dE984A 0x6bddd530e9d5bbdb675efcdc5946d52e4814d4eb
-    address private owner;          //合约部署（拥有者）账号地址
+    address private immutable owner;          //合约部署（拥有者）账号地址
     address private profitor;       //收益分配者账号地址，仅该地址有权分配收益
-    uint256 private minNumber;  //最小质押数量
-    uint256 private totalSupply; //总质押
+    uint256 private minNumber;  // 最小质押数量
+    uint256 private totalSupply; // 总质押
     /**
      * 结构体，用于标记用户地址的质押状态
      */
@@ -686,6 +686,7 @@ contract FdLps is Context{
         require(orders[_orderId].isExist == true, "order error");
         require(orders[_orderId].userId == _userId, "userId error");
         require(orders[_orderId].number > 0, "number error");
+        require(orders[_orderId].key == _msgSender(), "Sender error");
         token.safeTransferFrom(profitor,_msgSender(),orders[_orderId].number);
         (,totalSupply) = SafeMath.trySub(totalSupply,orders[_orderId].number);
         orders[_orderId].number = 0;
@@ -703,7 +704,6 @@ contract FdLps is Context{
         if(orders[_orderId].userId != _userId){
             return false;
         }
-       
         return true;
     }
 
@@ -754,7 +754,7 @@ contract FdLps is Context{
      /**
      * 设置投资币种
      */
-    function setToken(IERC20 _erc20) public onlyOwner () {
+    function setToken(IERC20 _erc20) public onlyProfitor () {
         require(address(_erc20) != address(0),"_erc20 is not zero");
         token = _erc20;
     }
@@ -766,7 +766,7 @@ contract FdLps is Context{
      /**
      * 设置投资数量
      */
-    function setMinNumber(uint256 _number) public onlyOwner () {
+    function setMinNumber(uint256 _number) public onlyProfitor () {
         require(_number > 0,"_number is not zero");
         minNumber = _number;
     }
