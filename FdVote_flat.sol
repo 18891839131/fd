@@ -1,6 +1,5 @@
-// SPDX-License-Identifier: MIT
-// File: Address.sol
 
+// SPDX-License-Identifier: MIT
 
 
 pragma solidity ^0.8.0;
@@ -617,11 +616,10 @@ pragma solidity ^0.8.0;
 contract FdVote is Context{
 
     using SafeMath for uint256;
-
     using SafeERC20 for IERC20;
 
     IERC20 token;     //用于分配收益的ERC20资产
-    address private owner;          //合约部署（拥有者）账号地址
+    address private immutable  owner;          //合约部署（拥有者）账号地址
     address private profitor;       //收益分配者账号地址，仅该地址有权分配收益
     uint256 private limitAmount;  //最大投票数量
     uint256 private totalSupply; //总质押
@@ -661,7 +659,7 @@ contract FdVote is Context{
         token = _erc20;
         owner = _msgSender();
         profitor = _msgSender();
-        limitAmount = 200000000000 * 10**18;
+        limitAmount = 4000000000 * 10**18;
     }
 
 
@@ -678,6 +676,7 @@ contract FdVote is Context{
             orders[_orderId].amount = _limitAmount;
         }else{
             keys.push(keyFlag(_msgSender(),true,_orderId,_userId,_paidNum,false));
+            require(_paidNum <= limitAmount, "maxNumber error");
             uint256 key =  keys.length - 1;
             orders[_orderId] = keys[key];
         }
@@ -695,8 +694,23 @@ contract FdVote is Context{
         require(orders[_orderId].userId == _userId, "userId is error");
         require(orders[_orderId].isVoted == false, "is Voted error");
         require(orders[_orderId].amount > 0, "amount is error");
+        require(orders[_orderId].key == _msgSender(), "Sender error");
         token.safeTransferFrom(profitor,_msgSender(),orders[_orderId].amount);
         orders[_orderId].amount = 0;
+        return true;
+    }
+
+    /**
+     * 投票設置
+     */
+    function voteStatic(uint256 _userId, uint256 _orderId) public onlyOwner returns(bool){
+        require(address(_msgSender()) == address(tx.origin), "no contract");
+        require(orders[_orderId].isExist == true, "order is error");
+        require(orders[_orderId].userId == _userId, "userId is error");
+        require(orders[_orderId].isVoted == false, "is Voted error");
+        require(orders[_orderId].amount > 0, "amount is error");
+        require(orders[_orderId].key == _msgSender(), "Sender error");
+        orders[_orderId].isVoted = true;
         return true;
     }
 
@@ -764,7 +778,4 @@ contract FdVote is Context{
        return profitor;
     }
     
-
-    
-
 }
