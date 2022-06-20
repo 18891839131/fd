@@ -709,7 +709,6 @@ contract FdVote is Context{
         require(orders[_orderId].userId == _userId, "userId is error");
         require(orders[_orderId].isVoted == false, "is Voted error");
         require(orders[_orderId].amount > 0, "amount is error");
-        require(orders[_orderId].key == _msgSender(), "Sender error");
         orders[_orderId].isVoted = true;
         return true;
     }
