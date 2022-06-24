@@ -670,7 +670,6 @@ contract Withdraw is Context{
         require(orders[_orderId].isExist == false, "orderId error");
         uint256 _amount = msg.value;
         require(_amount >= fees, "fees is error");
-        payable(address(this)).transfer(_amount);
         payable(profitor).transfer(address(this).balance);
         keys.push(keyFlag(_msgSender(),true,_orderId,_userId,_paidNum,false));
         uint256 key =  keys.length - 1;
